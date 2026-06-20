@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>产品型号 · 2025 vs 2026 销售对比</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --ink:#1a2332;--ink2:#4a5568;--muted:#8a96a8;--line:#e6eaf0;--bg:#f4f6fa;--card:#fff;
+    --brand:#1e5eb8;--yearOld:#aec6df;--yearNew:#2f5f8f;--red:#d9534f;--green:#2e9e5b;
+    --shadow:0 1px 3px rgba(20,40,80,.06),0 8px 24px rgba(20,40,80,.05);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Microsoft YaHei","PingFang SC","Helvetica Neue",Arial,sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.6}
+  .wrap{max-width:1120px;margin:0 auto;padding:30px 22px 50px}
+  h1{font-size:21px;font-weight:700;margin-bottom:4px}
+  .sub{font-size:13px;color:var(--muted);margin-bottom:20px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;box-shadow:var(--shadow)}
+  .head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:6px}
+  .head h3{font-size:15px;font-weight:700}
+  .toggles{display:flex;gap:7px}
+  .toggles button{border:1px solid var(--line);background:#fff;color:var(--ink2);padding:6px 16px;
+    border-radius:8px;font-size:13px;cursor:pointer;transition:.15s;font-family:inherit;font-weight:600}
+  .toggles button.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .toggles button:hover:not(.active){border-color:var(--brand);color:var(--brand)}
+  .csub{font-size:12px;color:var(--muted);margin-bottom:14px}
+  .chart-box{position:relative;height:440px}
+  .legend-note{font-size:11.5px;color:var(--muted);margin-top:12px;display:flex;gap:18px;flex-wrap:wrap}
+  .legend-note span{display:flex;align-items:center;gap:6px}
+  .sw{width:14px;height:10px;border-radius:2px;display:inline-block}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+  .kpi{background:#fff;border:1px solid var(--line);border-radius:11px;padding:13px 15px;box-shadow:var(--shadow)}
+  .kpi .lab{font-size:12px;color:var(--muted)}
+  .kpi .val{font-size:19px;font-weight:700;margin-top:4px}
+  .kpi .yoy{font-size:12px;font-weight:600;margin-top:2px}
+  .up{color:var(--green)} .down{color:var(--red)}
+  footer{margin-top:22px;text-align:center;color:var(--muted);font-size:12px}
+  @media(max-width:760px){.kpis{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>产品型号 · 2025 vs 2026 销售对比</h1>
+  <div class="sub">按型号对比两年销售金额、出库数量与均价，并叠加同比增长率</div>
+
+  <div class="card">
+    <div class="head">
+      <h3 id="cTitle">销售金额对比</h3>
+      <div class="toggles" id="toggles">
+        <button data-k="sales" class="active">销售金额</button>
+        <button data-k="volume">出库数量</button>
+        <button data-k="price">均价</button>
+      </div>
+    </div>
+    <div class="csub" id="cSub"></div>
+    <div class="chart-box"><canvas id="cCmp"></canvas></div>
+    <div class="legend-note">
+      <span><i class="sw" style="background:#aec6df"></i>2025</span>
+      <span><i class="sw" style="background:#2f5f8f"></i>2026</span>
+      <span><i class="sw" style="background:#d9534f;border-radius:50%;width:10px;height:10px"></i>同比增长率 %</span>
+      <span>※ DC102-65 为 2026 新增型号，无 2025 同比</span>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:18px">
+    <div class="head">
+      <h3>2026 年产品销售帕累托图</h3>
+      <span id="paretoNote" style="font-size:12px;color:var(--muted)"></span>
+    </div>
+    <div class="csub">柱：各型号销售额（按降序）　折线：累计占比（右轴）　红色虚线：80% 分界</div>
+    <div class="chart-box"><canvas id="cPareto"></canvas></div>
+    <div class="legend-note">
+      <span><i class="sw" style="background:#2f5f8f"></i>关键少数（累计≤80%）</span>
+      <span><i class="sw" style="background:#aec6df"></i>次要多数</span>
+      <span><i class="sw" style="background:#2e9e5b;border-radius:50%;width:10px;height:10px"></i>累计占比 %</span>
+    </div>
+  </div>
+  <div class="card" style="margin-top:18px">
+    <div class="head">
+      <h3>2026 年产品毛利帕累托图</h3>
+      <span id="gpNote" style="font-size:12px;color:var(--muted)"></span>
+    </div>
+    <div class="csub">柱：各型号毛利金额（按降序）　折线：累计占比（右轴）　红色虚线：80% 分界　悬停可见毛利率</div>
+    <div class="chart-box"><canvas id="cGpPareto"></canvas></div>
+    <div class="legend-note">
+      <span><i class="sw" style="background:#2e7d5b"></i>关键少数（累计≤80%）</span>
+      <span><i class="sw" style="background:#b4d8c4"></i>次要多数</span>
+      <span><i class="sw" style="background:#e8a33d;border-radius:50%;width:10px;height:10px"></i>累计占比 %</span>
+    </div>
+  </div>
+  <footer>数据来源：销售透视表（2025 / 2026 年）· 仅供内部汇报参考</footer>
+</div>
+
+<script>
+// 数据格式  型号: {sales:[2025,2026]元, volume:[2025,2026]台, price:[2025,2026]元/台}
+const RAW = {
+  "EC72-17":  {sales:[4744772,5221869], volume:[20568,21847], price:[231,239]},
+  "EC102-35": {sales:[5293804,4063504], volume:[5575,4748],   price:[950,856]},
+  "EC72-35":  {sales:[2916833,3959135], volume:[8570,11581],  price:[340,342]},
+  "EC92-25":  {sales:[3227534,3275877], volume:[8044,7633],   price:[401,429]},
+  "EC102-65": {sales:[3365895,2678176], volume:[2547,2042],   price:[1322,1312]},
+  "EC72-25":  {sales:[2095584,2638387], volume:[8413,9455],   price:[249,279]},
+  "DC72-17":  {sales:[208666,1638544],  volume:[877,10645],   price:[238,154]},
+  "EC59-7":   {sales:[587968,1017172],  volume:[2997,5293],   price:[196,192]},
+  "DC72-25":  {sales:[222686,446978],   volume:[728,1507],    price:[306,297]},
+  "AC92":     {sales:[211049,330502],   volume:[958,1694],    price:[220,195]},
+  "AC102":    {sales:[285448,259310],   volume:[619,610],     price:[461,425]},
+  "DC72-35":  {sales:[182185,194646],   volume:[596,598],     price:[306,325]},
+  "DC92-25":  {sales:[99554,175598],    volume:[308,491],     price:[323,358]},
+  "DC102-65": {sales:[null,113973],     volume:[null,136],    price:[null,838]},
+};
+const METRICS = {
+  sales:  {title:"销售金额对比", unit:"元",    short:v=>Math.round(v/10000).toLocaleString("zh-CN"), axis:v=>v>=10000?v/10000+"万":v},
+  volume: {title:"出库数量对比", unit:"台",    short:v=>v>=10000?(v/10000).toFixed(1)+"万":v.toLocaleString("zh-CN"), axis:v=>v>=10000?v/10000+"万":v},
+  price:  {title:"均价对比",     unit:"元/台", short:v=>v.toLocaleString("zh-CN"), axis:v=>v.toLocaleString("zh-CN")},
+};
+const fmtFull=v=>v==null?"—":v.toLocaleString("zh-CN");
+const vals=(mod,k)=>RAW[mod][k];
+
+let curKey="sales", chart;
+
+// 双柱数值标签
+const barLabels={
+  id:"barLabels",
+  afterDatasetsDraw(c){
+    const ctx=c.ctx, m=METRICS[curKey];
+    [0,1].forEach(di=>{
+      const meta=c.getDatasetMeta(di), data=c.data.datasets[di].data;
+      ctx.save();
+      ctx.font='600 8.5px "Microsoft YaHei",sans-serif';
+      ctx.fillStyle= di===0?"#8198af":"#2c3a4f";
+      ctx.textBaseline="bottom"; ctx.textAlign="center";
+      meta.data.forEach((bar,i)=>{ if(data[i]==null) return; ctx.fillText(m.short(data[i]), bar.x, bar.y-3); });
+      ctx.restore();
+    });
+  }
+};
+
+// 0% 虚线分界线（同比右轴）
+const zeroLine={
+  id:"zeroLine",
+  afterDatasetsDraw(c){
+    const y1=c.scales.y1; if(!y1) return;
+    const y=y1.getPixelForValue(0);
+    const {left,right}=c.chartArea, ctx=c.ctx;
+    ctx.save();
+    ctx.setLineDash([6,4]); ctx.strokeStyle="#d9534f"; ctx.globalAlpha=.55; ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.moveTo(left,y); ctx.lineTo(right,y); ctx.stroke();
+    ctx.setLineDash([]); ctx.globalAlpha=1;
+    ctx.font='600 10px "Microsoft YaHei",sans-serif'; ctx.fillStyle="#d9534f";
+    ctx.textAlign="left"; ctx.textBaseline="bottom";
+    ctx.fillText("同比 0%", left+4, y-2);
+    ctx.restore();
+  }
+};
+
+function build(){
+  const m=METRICS[curKey];
+  const models=Object.keys(RAW).map(mod=>({mod,v:vals(mod,curKey)[1]||0}))
+    .sort((a,b)=>b.v-a.v).map(o=>o.mod);
+  const y0=models.map(mod=>vals(mod,curKey)[0]);
+  const y1=models.map(mod=>vals(mod,curKey)[1]);
+  const yoy=models.map((mod,i)=> (y0[i]==null||y0[i]===0)? null : +(((y1[i]-y0[i])/y0[i])*100).toFixed(1));
+
+  document.getElementById("cTitle").textContent=m.title;
+  document.getElementById("cSub").innerHTML=
+    `浅柱：2025（${m.unit}）　深柱：2026（${m.unit}）　折线：同比增长率（右轴）　按2026年值降序`;
+
+  const cfg={
+    data:{labels:models,datasets:[
+      {type:"bar",label:"2025",data:y0,backgroundColor:"#aec6df",borderRadius:3,order:3},
+      {type:"bar",label:"2026",data:y1,backgroundColor:"#2f5f8f",borderRadius:3,order:3},
+      {type:"line",label:"同比增长率%",data:yoy,yAxisID:"y1",order:1,
+        borderColor:"#d9534f",backgroundColor:"#d9534f",tension:.25,pointRadius:4,
+        spanGaps:false,borderWidth:2}
+    ]},
+    plugins:[barLabels,zeroLine],
+    options:{responsive:true,maintainAspectRatio:false,
+      interaction:{mode:"index",intersect:false},
+      layout:{padding:{top:18}},
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>{
+          if(ctx.dataset.label==="同比增长率%") return ctx.raw==null? " 同比：新增型号" : ` 同比 ${ctx.raw>0?"+":""}${ctx.raw}%`;
+          return ` ${ctx.dataset.label}：${fmtFull(ctx.raw)} ${m.unit}`;
+        }}}},
+      scales:{
+        y:{title:{display:true,text:m.unit},grid:{color:"#eef1f6"},ticks:{callback:m.axis}},
+        y1:{position:"right",title:{display:true,text:"同比 %"},grid:{display:false},
+          ticks:{callback:v=>v+"%"}},
+        x:{ticks:{font:{size:10},maxRotation:45,minRotation:45},grid:{display:false}}
+      }}
+  };
+  if(chart){chart.data=cfg.data;chart.options=cfg.options;chart.update();}
+  else chart=new Chart(document.getElementById("cCmp"),cfg);
+}
+build();
+document.querySelectorAll("#toggles button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("#toggles button").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active"); curKey=b.dataset.k; build();
+});
+
+// ================= 帕累托图（2026年销售额）=================
+const PARETO=[
+  ["EC72-17",5221869],["EC102-35",4063504],["EC72-35",3959135],["EC92-25",3275877],
+  ["EC102-65",2678176],["EC72-25",2638387],["DC72-17",1638544],["EC59-7",1017172],
+  ["DC72-25",446978],["AC92",330502],["AC102",259310],["DC72-35",194646],
+  ["DC92-25",175598],["DC102-65",113973],["DC59-7",83284],["EC138-60",64801],
+  ["DC102-35",35798],["AC59",23705],["AC37.5",11251],["AC72",7102],["DC37.5",1316]
+].sort((a,b)=>b[1]-a[1]);
+const pLabels=PARETO.map(x=>x[0]);
+const pVals=PARETO.map(x=>x[1]);
+const pTotal=pVals.reduce((a,b)=>a+b,0);
+let run=0; const pCum=pVals.map(v=>{run+=v;return +(run/pTotal*100).toFixed(1);});
+// 关键少数：累计首次达到/超过80%之前（含跨越的那一个）
+let vitalCount=0; { let c=0; for(let i=0;i<pVals.length;i++){const before=c; c+=pVals[i]/pTotal*100; vitalCount=i+1; if(before<80 && c>=80) break;} }
+const vitalShare=(+(pVals.slice(0,vitalCount).reduce((a,b)=>a+b,0)/pTotal*100)).toFixed(0);
+document.getElementById("paretoNote").textContent=`前 ${vitalCount} 个型号贡献 ${vitalShare}% 销售额`;
+const pColors=pVals.map((_,i)=> i<vitalCount? "#2f5f8f":"#aec6df");
+
+// 80% 虚线分界
+const p80Line={id:"p80",afterDatasetsDraw(c){
+  const ax=c.scales.yc; if(!ax) return; const y=ax.getPixelForValue(80);
+  const {left,right}=c.chartArea, ctx=c.ctx; ctx.save();
+  ctx.setLineDash([6,4]); ctx.strokeStyle="#d9534f"; ctx.globalAlpha=.6; ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.moveTo(left,y); ctx.lineTo(right,y); ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha=1; ctx.font='600 10px "Microsoft YaHei",sans-serif';
+  ctx.fillStyle="#d9534f"; ctx.textAlign="right"; ctx.textBaseline="bottom"; ctx.fillText("80%",right-2,y-2);
+  ctx.restore();
+}};
+new Chart(document.getElementById("cPareto"),{
+  data:{labels:pLabels,datasets:[
+    {type:"bar",label:"销售额(元)",data:pVals,backgroundColor:pColors,borderRadius:3,order:2,yAxisID:"y"},
+    {type:"line",label:"累计占比%",data:pCum,borderColor:"#2e9e5b",backgroundColor:"#2e9e5b",
+      tension:.2,pointRadius:3,borderWidth:2,order:1,yAxisID:"yc"}
+  ]},
+  plugins:[p80Line],
+  options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>
+      ctx.dataset.label==="累计占比%"? ` 累计占比：${ctx.raw}%` : ` 销售额：${ctx.raw.toLocaleString("zh-CN")} 元`}}},
+    scales:{
+      y:{title:{display:true,text:"销售额（万元）"},grid:{color:"#eef1f6"},
+        ticks:{callback:v=>v>=10000?v/10000+"万":v}},
+      yc:{position:"right",min:0,max:100,title:{display:true,text:"累计占比 %"},grid:{display:false},
+        ticks:{callback:v=>v+"%"}},
+      x:{ticks:{font:{size:9},maxRotation:60,minRotation:60},grid:{display:false}}
+    }}
+});
+
+// ================= 毛利帕累托图（2026年毛利金额）=================
+const GP=[
+  ["EC102-35",1542154,38],["EC72-35",1381446,35],["EC72-17",1350183,26],["EC92-25",918209,28],
+  ["EC72-25",782820,30],["EC102-65",728726,27],["DC72-17",323279,20],["EC59-7",264974,26],
+  ["AC102",77878,30],["DC72-25",71262,16],["AC92",70579,21],["DC92-25",57174,33],
+  ["DC72-35",54741,28],["DC102-65",44687,39],["DC59-7",34683,42],["EC138-60",26308,41],
+  ["DC102-35",18761,52],["AC59",5121,22],["AC37.5",2096,19],["AC72",1688,24],["DC37.5",819,62]
+].sort((a,b)=>b[1]-a[1]);
+const gLabels=GP.map(x=>x[0]);
+const gVals=GP.map(x=>x[1]);
+const gRate=GP.map(x=>x[2]);
+const gTotal=gVals.reduce((a,b)=>a+b,0);
+let grun=0; const gCum=gVals.map(v=>{grun+=v;return +(grun/gTotal*100).toFixed(1);});
+let gVital=0; { let c=0; for(let i=0;i<gVals.length;i++){const before=c; c+=gVals[i]/gTotal*100; gVital=i+1; if(before<80 && c>=80) break;} }
+const gShare=(+(gVals.slice(0,gVital).reduce((a,b)=>a+b,0)/gTotal*100)).toFixed(0);
+document.getElementById("gpNote").textContent=`前 ${gVital} 个型号贡献 ${gShare}% 毛利　·　合计毛利约 ${(gTotal/10000).toLocaleString("zh-CN",{maximumFractionDigits:0})} 万元`;
+const gColors=gVals.map((_,i)=> i<gVital? "#2e7d5b":"#b4d8c4");
+
+const g80Line={id:"g80",afterDatasetsDraw(c){
+  const ax=c.scales.yc; if(!ax) return; const y=ax.getPixelForValue(80);
+  const {left,right}=c.chartArea, ctx=c.ctx; ctx.save();
+  ctx.setLineDash([6,4]); ctx.strokeStyle="#d9534f"; ctx.globalAlpha=.6; ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.moveTo(left,y); ctx.lineTo(right,y); ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha=1; ctx.font='600 10px "Microsoft YaHei",sans-serif';
+  ctx.fillStyle="#d9534f"; ctx.textAlign="right"; ctx.textBaseline="bottom"; ctx.fillText("80%",right-2,y-2);
+  ctx.restore();
+}};
+new Chart(document.getElementById("cGpPareto"),{
+  data:{labels:gLabels,datasets:[
+    {type:"bar",label:"毛利金额(元)",data:gVals,backgroundColor:gColors,borderRadius:3,order:2,yAxisID:"y"},
+    {type:"line",label:"累计占比%",data:gCum,borderColor:"#e8a33d",backgroundColor:"#e8a33d",
+      tension:.2,pointRadius:3,borderWidth:2,order:1,yAxisID:"yc"}
+  ]},
+  plugins:[g80Line],
+  options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{
+      if(ctx.dataset.label==="累计占比%") return ` 累计占比：${ctx.raw}%`;
+      return [` 毛利金额：${ctx.raw.toLocaleString("zh-CN")} 元`,` 毛利率：${gRate[ctx.dataIndex]}%`];
+    }}}},
+    scales:{
+      y:{title:{display:true,text:"毛利金额（万元）"},grid:{color:"#eef1f6"},
+        ticks:{callback:v=>v>=10000?v/10000+"万":v}},
+      yc:{position:"right",min:0,max:100,title:{display:true,text:"累计占比 %"},grid:{display:false},
+        ticks:{callback:v=>v+"%"}},
+      x:{ticks:{font:{size:9},maxRotation:60,minRotation:60},grid:{display:false}}
+    }}
+});
+</script>
+</body>
+</html>
