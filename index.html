@@ -229,14 +229,36 @@ const p80Line={id:"p80",afterDatasetsDraw(c){
   ctx.fillStyle="#d9534f"; ctx.textAlign="right"; ctx.textBaseline="bottom"; ctx.fillText("80%",right-2,y-2);
   ctx.restore();
 }};
+// 帕累托数值标签（柱：数值竖排；折线：累计%）
+function paretoLabels(barColor,lineColor){return {
+  id:"plabels",
+  afterDatasetsDraw(c){
+    const ctx=c.ctx;
+    const wan=v=> v>=10000 ? ((v/10000>=100?Math.round(v/10000):(v/10000).toFixed(1))+"万") : v.toLocaleString("zh-CN");
+    const bm=c.getDatasetMeta(0), bd=c.data.datasets[0].data;
+    ctx.save(); ctx.font='600 8px "Microsoft YaHei",sans-serif'; ctx.fillStyle=barColor;
+    bm.data.forEach((bar,i)=>{ if(bd[i]==null) return;
+      ctx.save(); ctx.translate(bar.x,bar.y-4); ctx.rotate(-Math.PI/2);
+      ctx.textAlign="left"; ctx.textBaseline="middle"; ctx.fillText(wan(bd[i]),0,0); ctx.restore();
+    });
+    ctx.restore();
+    const lm=c.getDatasetMeta(1), ld=c.data.datasets[1].data;
+    ctx.save(); ctx.font='700 8.5px "Microsoft YaHei",sans-serif'; ctx.fillStyle=lineColor;
+    ctx.textAlign="center"; ctx.textBaseline="bottom";
+    lm.data.forEach((pt,i)=>{ ctx.fillText(ld[i]+"%", pt.x, pt.y-5); });
+    ctx.restore();
+  }
+};}
+
 new Chart(document.getElementById("cPareto"),{
   data:{labels:pLabels,datasets:[
     {type:"bar",label:"销售额(元)",data:pVals,backgroundColor:pColors,borderRadius:3,order:2,yAxisID:"y"},
     {type:"line",label:"累计占比%",data:pCum,borderColor:"#2e9e5b",backgroundColor:"#2e9e5b",
       tension:.2,pointRadius:3,borderWidth:2,order:1,yAxisID:"yc"}
   ]},
-  plugins:[p80Line],
+  plugins:[p80Line,paretoLabels("#2c3a4f","#2e9e5b")],
   options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+    layout:{padding:{top:24}},
     plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>
       ctx.dataset.label==="累计占比%"? ` 累计占比：${ctx.raw}%` : ` 销售额：${ctx.raw.toLocaleString("zh-CN")} 元`}}},
     scales:{
@@ -281,8 +303,9 @@ new Chart(document.getElementById("cGpPareto"),{
     {type:"line",label:"累计占比%",data:gCum,borderColor:"#e8a33d",backgroundColor:"#e8a33d",
       tension:.2,pointRadius:3,borderWidth:2,order:1,yAxisID:"yc"}
   ]},
-  plugins:[g80Line],
+  plugins:[g80Line,paretoLabels("#2c3a4f","#b9791f")],
   options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+    layout:{padding:{top:24}},
     plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{
       if(ctx.dataset.label==="累计占比%") return ` 累计占比：${ctx.raw}%`;
       return [` 毛利金额：${ctx.raw.toLocaleString("zh-CN")} 元`,` 毛利率：${gRate[ctx.dataIndex]}%`];
